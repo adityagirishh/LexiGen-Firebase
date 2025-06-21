@@ -40,12 +40,15 @@ import { mockAnalyses, mockMemoResult } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import DocumentPreview from "@/components/document-preview";
+import { generateDocumentEmbedding } from "@/ai/flows/generate-document-embedding";
+import { retrieveSimilarCases } from "@/ai/flows/retrieve-similar-cases";
+import { generatePreliminaryMemo } from "@/ai/flows/generate-preliminary-memo";
 
 const loadingSteps = [
-  { text: "Embedding document...", duration: 2000 },
-  { text: "Retrieving similar cases...", duration: 3000 },
-  { text: "Generating preliminary memo...", duration: 4000 },
-  { text: "Finalizing analysis...", duration: 1000 },
+  { text: "Embedding document..." },
+  { text: "Retrieving similar cases..." },
+  { text: "Generating preliminary memo..." },
+  { text: "Finalizing analysis..." },
 ];
 
 export default function DashboardPage() {
@@ -58,57 +61,132 @@ export default function DashboardPage() {
     React.useState<Analysis[]>(mockAnalyses);
   const [similarCases, setSimilarCases] = React.useState(mockMemoResult.similarCases);
   const [searchTerm, setSearchTerm] = React.useState("");
+  const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
+  const [userInstructions, setUserInstructions] = React.useState("");
 
   const { toast } = useToast();
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) { // 10MB limit
+        toast({
+          title: "File too large",
+          description: "Please select a file smaller than 10MB.",
+          variant: "destructive",
+        });
+        e.target.value = ''; // Clear the input
+        return;
+      }
+      setSelectedFile(file);
+    }
+  };
+
   const handleStartAnalysis = async () => {
+    if (!selectedFile) {
+      toast({
+        title: "No file selected",
+        description: "Please upload a document to start the analysis.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     setLoadingStep(0);
     setProgress(0);
+    setAnalysisResult(null);
 
     const newAnalysis: Analysis = {
       id: `case-00${recentAnalyses.length + 1}`,
-      caseName: `New Case Analysis #${recentAnalyses.length + 1}`,
+      caseName: selectedFile.name,
       date: new Date().toLocaleDateString(),
       status: "In Progress",
     };
     setRecentAnalyses([newAnalysis, ...recentAnalyses]);
 
-    let cumulativeDuration = 0;
-    const totalDuration = loadingSteps.reduce(
-      (acc, step) => acc + step.duration,
-      0
-    );
+    try {
+      const fileToDataUri = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = (error) => reject(error);
+        });
+      };
 
-    for (let i = 0; i < loadingSteps.length; i++) {
-      setLoadingStep(i);
-      const step = loadingSteps[i];
-      const start = Date.now();
-      while (Date.now() - start < step.duration) {
-        const elapsed = Date.now() - start;
-        const stepProgress = (elapsed / step.duration) * (step.duration / totalDuration) * 100;
-        const overallProgress = (cumulativeDuration / totalDuration) * 100 + stepProgress;
-        setProgress(overallProgress);
-        await new Promise((resolve) => setTimeout(resolve, 50));
-      }
-      cumulativeDuration += step.duration;
+      // Step 1: Read file and generate embedding
+      setLoadingStep(0);
+      const documentText = await selectedFile.text();
+      const documentDataUri = await fileToDataUri(selectedFile);
+      setProgress(25);
+      const embeddingResponse = await generateDocumentEmbedding({ documentDataUri });
+
+      // Step 2: Retrieve similar cases
+      setLoadingStep(1);
+      setProgress(50);
+      await retrieveSimilarCases({ documentEmbedding: embeddingResponse.embedding });
+      const similarCaseSummaries = mockMemoResult.similarCases.slice(0, 3).map(c => `${c.name}: ${c.summary}`);
+
+      // Step 3: Generate preliminary memo
+      setLoadingStep(2);
+      setProgress(75);
+      const memoResponse = await generatePreliminaryMemo({
+        documentText,
+        similarCases: similarCaseSummaries,
+        userInstructions: userInstructions,
+      });
+
+      // Step 4: Finalize and display
+      setLoadingStep(3);
+      const finalResult: MemoResult = {
+        memo: {
+          title: `Preliminary Memo for ${selectedFile.name}`,
+          sections: [{ title: 'Preliminary Memorandum', content: memoResponse.preliminaryMemo }],
+        },
+        summary: memoResponse.summary,
+        identifiedLaws: memoResponse.identifiedLaws.map((law) => ({
+          name: law,
+          url: '#',
+        })),
+        similarCases: mockMemoResult.similarCases,
+      };
+      
+      setAnalysisResult(finalResult);
+      setProgress(100);
+      
+      setRecentAnalyses((prev) =>
+        prev.map((a) =>
+          a.id === newAnalysis.id ? { ...a, status: "Completed" } : a
+        )
+      );
+
+      toast({
+        title: "Analysis Complete",
+        description: "Your preliminary case memorandum is ready for review.",
+      });
+
+    } catch (error) {
+      console.error("Analysis failed:", error);
+      setRecentAnalyses((prev) =>
+        prev.map((a) =>
+          a.id === newAnalysis.id ? { ...a, status: "Failed" } : a
+        )
+      );
+      toast({
+        title: "Analysis Failed",
+        description: "Something went wrong during the analysis.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
-
-    setRecentAnalyses((prev) =>
-      prev.map((a) =>
-        a.id === newAnalysis.id ? { ...a, status: "Completed" } : a
-      )
-    );
-    setLoading(false);
-    setAnalysisResult(mockMemoResult);
-    toast({
-      title: "Analysis Complete",
-      description: "Your preliminary case memorandum is ready for review.",
-    });
   };
 
   const handleBackToDashboard = () => {
     setAnalysisResult(null);
+    setSelectedFile(null);
+    setUserInstructions("");
   };
   
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -208,8 +286,8 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2">
-                  {analysisResult.identifiedLaws.map((law) => (
-                    <li key={law.name}>
+                  {analysisResult.identifiedLaws.map((law, index) => (
+                    <li key={`${law.name}-${index}`}>
                       <a
                         href={law.url}
                         target="_blank"
@@ -268,14 +346,14 @@ export default function DashboardPage() {
           </div>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button onClick={handleStartAnalysis}>
+              <Button onClick={handleStartAnalysis} disabled={!selectedFile || loading}>
                 <PlusCircle className="mr-2" />
                 Generate Memo with AI
               </Button>
             </TooltipTrigger>
             <TooltipContent>
               <p>
-                This will start the AI pipeline to analyze your documents.
+                Upload a document to start the AI pipeline analysis.
               </p>
             </TooltipContent>
           </Tooltip>
@@ -285,12 +363,18 @@ export default function DashboardPage() {
             <label htmlFor="file-upload" className="block text-sm font-medium">Upload Documents</label>
             <div className="flex items-center justify-center w-full">
                 <label htmlFor="file-upload" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-background hover:bg-muted/50">
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
                         <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
-                        <p className="mb-1 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                        <p className="text-xs text-muted-foreground">PDF, DOCX, TXT (MAX. 10MB)</p>
+                        {selectedFile ? (
+                          <p className="font-semibold text-sm px-2 truncate">{selectedFile.name}</p>
+                        ) : (
+                          <>
+                            <p className="mb-1 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                            <p className="text-xs text-muted-foreground">PDF, DOCX, TXT (MAX. 10MB)</p>
+                          </>
+                        )}
                     </div>
-                    <Input id="file-upload" type="file" className="hidden" />
+                    <Input id="file-upload" type="file" className="hidden" onChange={handleFileChange} accept=".pdf,.docx,.txt" />
                 </label>
             </div>
           </div>
@@ -300,6 +384,8 @@ export default function DashboardPage() {
               id="instructions"
               placeholder="e.g., Focus on contract law aspects..."
               className="h-32"
+              value={userInstructions}
+              onChange={(e) => setUserInstructions(e.target.value)}
             />
           </div>
         </CardContent>
@@ -337,7 +423,8 @@ export default function DashboardPage() {
                       }
                       className={cn(
                         analysis.status === 'Completed' && 'bg-green-600/20 text-green-700 dark:bg-green-500/20 dark:text-green-400 border-green-600/20',
-                        analysis.status === 'In Progress' && 'bg-amber-500/20 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 border-amber-500/20'
+                        analysis.status === 'In Progress' && 'bg-amber-500/20 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 border-amber-500/20',
+                        analysis.status === 'Failed' && 'bg-red-600/20 text-red-700 dark:bg-red-500/20 dark:text-red-400 border-red-500/20'
                       )}
                     >
                       {analysis.status}
