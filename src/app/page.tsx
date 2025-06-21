@@ -34,6 +34,7 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
+  TooltipProvider,
 } from "@/components/ui/tooltip";
 import type { Analysis, MemoResult } from "@/lib/types";
 import { mockAnalyses, mockMemoResult } from "@/lib/data";
@@ -43,8 +44,11 @@ import DocumentPreview from "@/components/document-preview";
 import { generateDocumentEmbedding } from "@/ai/flows/generate-document-embedding";
 import { retrieveSimilarCases } from "@/ai/flows/retrieve-similar-cases";
 import { generatePreliminaryMemo } from "@/ai/flows/generate-preliminary-memo";
+import { storage } from "@/lib/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const loadingSteps = [
+  { text: "Uploading document securely..." },
   { text: "Embedding document..." },
   { text: "Retrieving similar cases..." },
   { text: "Generating preliminary memo..." },
@@ -106,39 +110,36 @@ export default function DashboardPage() {
     setRecentAnalyses([newAnalysis, ...recentAnalyses]);
 
     try {
-      const fileToDataUri = (file: File): Promise<string> => {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.readAsDataURL(file);
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = (error) => reject(error);
-        });
-      };
-
-      // Step 1: Read file and generate embedding
+      // Step 1: Upload file to Firebase Storage
       setLoadingStep(0);
-      const documentText = await selectedFile.text();
-      const documentDataUri = await fileToDataUri(selectedFile);
-      setProgress(25);
-      const embeddingResponse = await generateDocumentEmbedding({ documentDataUri });
+      const storageRef = ref(storage, `documents/${Date.now()}-${selectedFile.name}`);
+      await uploadBytes(storageRef, selectedFile);
+      const documentUrl = await getDownloadURL(storageRef);
+      setProgress(20);
 
-      // Step 2: Retrieve similar cases
+      // Step 2: Generate embedding from the uploaded file's URL
       setLoadingStep(1);
-      setProgress(50);
+      const documentText = await selectedFile.text();
+      const embeddingResponse = await generateDocumentEmbedding({ documentUrl });
+      setProgress(40);
+
+      // Step 3: Retrieve similar cases
+      setLoadingStep(2);
       await retrieveSimilarCases({ documentEmbedding: embeddingResponse.embedding });
       const similarCaseSummaries = mockMemoResult.similarCases.slice(0, 3).map(c => `${c.name}: ${c.summary}`);
+      setProgress(60);
 
-      // Step 3: Generate preliminary memo
-      setLoadingStep(2);
-      setProgress(75);
+      // Step 4: Generate preliminary memo
+      setLoadingStep(3);
       const memoResponse = await generatePreliminaryMemo({
         documentText,
         similarCases: similarCaseSummaries,
         userInstructions: userInstructions,
       });
+      setProgress(80);
 
-      // Step 4: Finalize and display
-      setLoadingStep(3);
+      // Step 5: Finalize and display
+      setLoadingStep(4);
       const finalResult: MemoResult = {
         memo: {
           title: `Preliminary Memo for ${selectedFile.name}`,
@@ -168,6 +169,15 @@ export default function DashboardPage() {
 
     } catch (error) {
       console.error("Analysis failed:", error);
+      let errorMessage = "Something went wrong during the analysis.";
+      if (error instanceof Error) {
+        if (error.message.includes('storage/unauthorized')) {
+            errorMessage = "Upload failed: Check your Firebase Storage security rules."
+        } else if (error.message.includes('storage/object-not-found')) {
+            errorMessage = "Upload failed: File not found.";
+        }
+      }
+
       setRecentAnalyses((prev) =>
         prev.map((a) =>
           a.id === newAnalysis.id ? { ...a, status: "Failed" } : a
@@ -175,7 +185,7 @@ export default function DashboardPage() {
       );
       toast({
         title: "Analysis Failed",
-        description: "Something went wrong during the analysis.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -232,7 +242,7 @@ export default function DashboardPage() {
             <div className="space-y-4">
               <Progress value={progress} className="w-full" />
               <p className="text-sm text-muted-foreground">
-                {loadingSteps[loadingStep]?.text}
+                {loadingSteps[loadingStep]?.text || "Finalizing..."}
               </p>
             </div>
           </CardContent>
@@ -332,115 +342,117 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
-      <h1 className="text-3xl font-bold font-headline">Dashboard</h1>
-      <Card className="bg-primary-foreground/5 dark:bg-card">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="font-headline">
-              Start New Analysis
-            </CardTitle>
-            <CardDescription>
-              Upload documents to generate a preliminary case memo.
-            </CardDescription>
-          </div>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button onClick={handleStartAnalysis} disabled={!selectedFile || loading}>
-                <PlusCircle className="mr-2" />
-                Generate Memo with AI
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>
-                Upload a document to start the AI pipeline analysis.
-              </p>
-            </TooltipContent>
-          </Tooltip>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <label htmlFor="file-upload" className="block text-sm font-medium">Upload Documents</label>
-            <div className="flex items-center justify-center w-full">
-                <label htmlFor="file-upload" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-background hover:bg-muted/50">
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
-                        <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
-                        {selectedFile ? (
-                          <p className="font-semibold text-sm px-2 truncate">{selectedFile.name}</p>
-                        ) : (
-                          <>
-                            <p className="mb-1 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                            <p className="text-xs text-muted-foreground">PDF, DOCX, TXT (MAX. 10MB)</p>
-                          </>
-                        )}
-                    </div>
-                    <Input id="file-upload" type="file" className="hidden" onChange={handleFileChange} accept=".pdf,.docx,.txt" />
-                </label>
+    <TooltipProvider>
+      <div className="p-4 md:p-6 space-y-6">
+        <h1 className="text-3xl font-bold font-headline">Dashboard</h1>
+        <Card className="bg-primary-foreground/5 dark:bg-card">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="font-headline">
+                Start New Analysis
+              </CardTitle>
+              <CardDescription>
+                Upload documents to generate a preliminary case memo.
+              </CardDescription>
             </div>
-          </div>
-          <div className="space-y-4">
-             <label htmlFor="instructions" className="block text-sm font-medium">User Instructions (Optional)</label>
-            <Textarea
-              id="instructions"
-              placeholder="e.g., Focus on contract law aspects..."
-              className="h-32"
-              value={userInstructions}
-              onChange={(e) => setUserInstructions(e.target.value)}
-            />
-          </div>
-        </CardContent>
-      </Card>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button onClick={handleStartAnalysis} disabled={!selectedFile || loading}>
+                  <PlusCircle className="mr-2" />
+                  Generate Memo with AI
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>
+                  Upload a document to start the AI pipeline analysis.
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <label htmlFor="file-upload" className="block text-sm font-medium">Upload Documents</label>
+              <div className="flex items-center justify-center w-full">
+                  <label htmlFor="file-upload" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-background hover:bg-muted/50">
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
+                          <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
+                          {selectedFile ? (
+                            <p className="font-semibold text-sm px-2 truncate">{selectedFile.name}</p>
+                          ) : (
+                            <>
+                              <p className="mb-1 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                              <p className="text-xs text-muted-foreground">PDF, DOCX, TXT (MAX. 10MB)</p>
+                            </>
+                          )}
+                      </div>
+                      <Input id="file-upload" type="file" className="hidden" onChange={handleFileChange} accept=".pdf,.docx,.txt" />
+                  </label>
+              </div>
+            </div>
+            <div className="space-y-4">
+               <label htmlFor="instructions" className="block text-sm font-medium">User Instructions (Optional)</label>
+              <Textarea
+                id="instructions"
+                placeholder="e.g., Focus on contract law aspects..."
+                className="h-32"
+                value={userInstructions}
+                onChange={(e) => setUserInstructions(e.target.value)}
+              />
+            </div>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-headline">Recent Analyses</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Case Name</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {recentAnalyses.map((analysis) => (
-                <TableRow key={analysis.id}>
-                  <TableCell className="font-medium">
-                    {analysis.caseName}
-                  </TableCell>
-                  <TableCell>{analysis.date}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        analysis.status === "Completed"
-                          ? "default"
-                          : analysis.status === "In Progress"
-                          ? "secondary"
-                          : "destructive"
-                      }
-                      className={cn(
-                        analysis.status === 'Completed' && 'bg-green-600/20 text-green-700 dark:bg-green-500/20 dark:text-green-400 border-green-600/20',
-                        analysis.status === 'In Progress' && 'bg-amber-500/20 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 border-amber-500/20',
-                        analysis.status === 'Failed' && 'bg-red-600/20 text-red-700 dark:bg-red-500/20 dark:text-red-400 border-red-500/20'
-                      )}
-                    >
-                      {analysis.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" onClick={() => handleViewAnalysis(analysis)} disabled={analysis.status !== 'Completed'}>
-                      View
-                    </Button>
-                  </TableCell>
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-headline">Recent Analyses</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Case Name</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
+              </TableHeader>
+              <TableBody>
+                {recentAnalyses.map((analysis) => (
+                  <TableRow key={analysis.id}>
+                    <TableCell className="font-medium">
+                      {analysis.caseName}
+                    </TableCell>
+                    <TableCell>{analysis.date}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          analysis.status === "Completed"
+                            ? "default"
+                            : analysis.status === "In Progress"
+                            ? "secondary"
+                            : "destructive"
+                        }
+                        className={cn(
+                          analysis.status === 'Completed' && 'bg-green-600/20 text-green-700 dark:bg-green-500/20 dark:text-green-400 border-green-600/20',
+                          analysis.status === 'In Progress' && 'bg-amber-500/20 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 border-amber-500/20',
+                          analysis.status === 'Failed' && 'bg-red-600/20 text-red-700 dark:bg-red-500/20 dark:text-red-400 border-red-500/20'
+                        )}
+                      >
+                        {analysis.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="sm" onClick={() => handleViewAnalysis(analysis)} disabled={analysis.status !== 'Completed'}>
+                        View
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
+    </TooltipProvider>
   );
 }
