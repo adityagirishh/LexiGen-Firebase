@@ -7,6 +7,9 @@ Legal professionals face significant challenges and costs during the initial ass
 Our Solution:
 LexiJuris aims to automate and streamline the preliminary legal analysis process. By leveraging AI, LexiJuris will rapidly extract key facts, parties, claims, and jurisdictions from new legal documents. It will then intelligently retrieve semantically and contextually similar statutes and case law, moving beyond traditional keyword limitations. This allows legal professionals to quickly generate a data-driven "Preliminary Case Memorandum," providing an immediate, actionable starting point for case assessment and strategy, ultimately reducing costs and improving efficiency.
 
+link to preview : https://6000-firebase-studio-1750482641198.cluster-zkm2jrwbnbd4awuedc2alqxrpk.cloudworkstations.dev/
+
+
 <a href="https://studio.firebase.google.com/import?url=https%3A%2F%2Fgithub.com%2Fadityagirishh%2FLexiGen-Firebase">
   <picture>
     <source
