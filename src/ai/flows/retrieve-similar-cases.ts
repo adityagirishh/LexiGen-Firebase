@@ -10,14 +10,21 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { mockMemoResult } from '@/lib/data';
 
 const RetrieveSimilarCasesInputSchema = z.object({
   documentEmbedding: z.array(z.number()).describe('The embedding of the document.'),
 });
 export type RetrieveSimilarCasesInput = z.infer<typeof RetrieveSimilarCasesInputSchema>;
 
+const SimilarCaseSchema = z.object({
+  id: z.string().describe('The ID of the case.'),
+  name: z.string().describe('The name of the case.'),
+  summary: z.string().describe('A summary of the case.'),
+});
+
 const RetrieveSimilarCasesOutputSchema = z.object({
-  caseIds: z.array(z.string()).describe('The IDs of the similar court cases.'),
+  similarCases: z.array(SimilarCaseSchema).describe('A list of similar court cases.'),
 });
 export type RetrieveSimilarCasesOutput = z.infer<typeof RetrieveSimilarCasesOutputSchema>;
 
@@ -34,8 +41,8 @@ const retrieveSimilarCasesFlow = ai.defineFlow(
   async input => {
     // Placeholder implementation - replace with actual retrieval logic
     // This should call the Vertex AI Matching Engine with the document embedding
-    // and return the IDs of the most similar court cases.
-    // For now, return a dummy list of case IDs.
-    return {caseIds: ['case1', 'case2', 'case3']};
+    // and return the details of the most similar court cases.
+    // For now, return a dummy list of cases from mock data.
+    return { similarCases: mockMemoResult.similarCases.slice(0, 3) };
   }
 );

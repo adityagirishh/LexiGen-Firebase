@@ -148,7 +148,6 @@ export default function DashboardPage() {
       // Step 3: Retrieve similar cases
       setLoadingStep(2);
       const retrievedCasesResponse = await retrieveSimilarCases({ documentEmbedding: embeddingResponse.embedding });
-      // @ts-ignore
       const similarCaseSummaries = retrievedCasesResponse.similarCases.map(c => `${c.name}: ${c.summary}`);
       setProgress(60);
 
@@ -172,12 +171,10 @@ export default function DashboardPage() {
         identifiedLaws: memoResponse.identifiedLaws.map((law) => ({
           name: law
         })),
-        // @ts-ignore
         similarCases: retrievedCasesResponse.similarCases,
       };
       
       setAnalysisResult(finalResult);
-      // @ts-ignore
       setSimilarCases(retrievedCasesResponse.similarCases);
       setProgress(100);
       
