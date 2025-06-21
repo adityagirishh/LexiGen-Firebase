@@ -1,6 +1,5 @@
-Here's a small README description:
 
-LexiGen: Revolutionizing Initial Legal Case Analysis
+**LexiGen**: Revolutionizing Initial Legal Case Analysis
 
 The Problem:
 Legal professionals face significant challenges and costs during the initial assessment of new cases. Manually deconstructing legal documents, sifting through vast, dispersed legal databases using inefficient keyword searches, and then synthesizing this information into a coherent strategy is a time-consuming, expensive, and bottlenecked process. This manual effort hinders quick and accurate identification of relevant laws and case precedents, creating a high barrier to effective legal strategizing.
