@@ -90,9 +90,10 @@ export default function DashboardPage() {
   const handleStartAnalysis = async () => {
     const { storage, isConfigured } = initializeFirebase();
     if (!isConfigured || !storage) {
+      const errorMessage = "Your Firebase credentials are not loading correctly. Open the developer console for details and ensure all NEXT_PUBLIC_ variables are set in your .env file before RESTARTING your server."
       toast({
         title: "Firebase Configuration Error",
-        description: "Your Firebase credentials are not loading correctly. Please ensure all NEXT_PUBLIC_ variables are set in your .env file and RESTART your server.",
+        description: errorMessage,
         variant: "destructive",
       });
       return;

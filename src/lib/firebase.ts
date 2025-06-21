@@ -3,23 +3,14 @@
 import { initializeApp, getApp, getApps, type FirebaseApp } from 'firebase/app';
 import { getStorage, type FirebaseStorage } from 'firebase/storage';
 
-// Module-level cache for the Firebase instances
 let app: FirebaseApp | null = null;
 let storage: FirebaseStorage | null = null;
-let isConfigured = false;
 
-/**
- * Initializes Firebase on the client-side if not already done.
- * This function is safe to call multiple times.
- * @returns An object containing the Firebase app, storage instance, and configuration status.
- */
 function initializeFirebase(): { app: FirebaseApp | null; storage: FirebaseStorage | null; isConfigured: boolean } {
-    // This function is intended for the client, so do nothing on the server.
     if (typeof window === 'undefined') {
         return { app: null, storage: null, isConfigured: false };
     }
 
-    // If we've already initialized, return the cached instances.
     if (app && storage) {
         return { app, storage, isConfigured: true };
     }
@@ -34,34 +25,31 @@ function initializeFirebase(): { app: FirebaseApp | null; storage: FirebaseStora
         measurementId: process.env.NEXT_PUBLIC_MEASUREMENT_ID,
     };
 
-    // Check if all necessary environment variables are loaded.
-    const configComplete =
-      firebaseConfig.apiKey &&
-      firebaseConfig.authDomain &&
-      firebaseConfig.projectId &&
-      firebaseConfig.storageBucket &&
-      firebaseConfig.messagingSenderId &&
-      firebaseConfig.appId;
+    console.log("Attempting to initialize Firebase with the following config (check for undefined values):", {
+        apiKey: firebaseConfig.apiKey ? 'loaded' : undefined,
+        authDomain: firebaseConfig.authDomain,
+        projectId: firebaseConfig.projectId,
+        storageBucket: firebaseConfig.storageBucket,
+        messagingSenderId: firebaseConfig.messagingSenderId,
+        appId: firebaseConfig.appId,
+    });
 
-    if (!configComplete) {
-        console.warn("Firebase configuration is incomplete. Please check all NEXT_PUBLIC_ variables in your .env file. If you've just added them, you MUST RESTART the development server.");
-        isConfigured = false;
+    const missingKeys = Object.entries(firebaseConfig)
+      .filter(([key, value]) => !value && key !== 'measurementId' && key !== 'authDomain' ) 
+      .map(([key]) => `NEXT_PUBLIC_${key.replace(/([A-Z])/g, '_$1').toUpperCase()}`);
+
+    if (missingKeys.length > 0) {
+        console.error(`Firebase configuration is incomplete. The following environment variables are missing or undefined: ${missingKeys.join(', ')}. Please check your .env file and ensure the development server has been RESTARTED since the last change.`);
         return { app: null, storage: null, isConfigured: false };
     }
 
     try {
-        // Initialize the app (or get the existing one)
-        const firebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-        
-        // Cache the instances
-        app = firebaseApp;
+        app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
         storage = getStorage(app);
-        isConfigured = true;
-
+        console.log("Firebase initialized successfully.");
         return { app, storage, isConfigured: true };
     } catch (error) {
-        console.error("Error initializing Firebase:", error);
-        isConfigured = false;
+        console.error("An unexpected error occurred during Firebase initialization:", error);
         return { app: null, storage: null, isConfigured: false };
     }
 }
