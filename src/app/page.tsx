@@ -44,7 +44,7 @@ import DocumentPreview from "@/components/document-preview";
 import { generateDocumentEmbedding } from "@/ai/flows/generate-document-embedding";
 import { retrieveSimilarCases } from "@/ai/flows/retrieve-similar-cases";
 import { generatePreliminaryMemo } from "@/ai/flows/generate-preliminary-memo";
-import { storage } from "@/lib/firebase";
+import { initializeFirebase } from "@/lib/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const loadingSteps = [
@@ -72,8 +72,8 @@ export default function DashboardPage() {
   const { toast } = useToast();
 
   React.useEffect(() => {
-    // Check if storage object is not empty, indicating Firebase has been configured.
-    setIsFirebaseConfigured(Object.keys(storage).length > 0);
+    const { isConfigured } = initializeFirebase();
+    setIsFirebaseConfigured(isConfigured);
   }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -93,6 +93,16 @@ export default function DashboardPage() {
   };
 
   const handleStartAnalysis = async () => {
+    const { storage, isConfigured } = initializeFirebase();
+    if (!isConfigured || !storage) {
+      toast({
+        title: "Firebase Not Configured",
+        description: "Please update .env with your Firebase project credentials.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!selectedFile) {
       toast({
         title: "No file selected",
@@ -131,8 +141,8 @@ export default function DashboardPage() {
 
       // Step 3: Retrieve similar cases
       setLoadingStep(2);
-      await retrieveSimilarCases({ documentEmbedding: embeddingResponse.embedding });
-      const similarCaseSummaries = mockMemoResult.similarCases.slice(0, 3).map(c => `${c.name}: ${c.summary}`);
+      const retrievedCasesResponse = await retrieveSimilarCases({ documentEmbedding: embeddingResponse.embedding });
+      const similarCaseSummaries = retrievedCasesResponse.similarCases.map(c => `${c.name}: ${c.summary}`);
       setProgress(60);
 
       // Step 4: Generate preliminary memo
@@ -156,10 +166,11 @@ export default function DashboardPage() {
           name: law,
           url: '#',
         })),
-        similarCases: mockMemoResult.similarCases,
+        similarCases: retrievedCasesResponse.similarCases,
       };
       
       setAnalysisResult(finalResult);
+      setSimilarCases(retrievedCasesResponse.similarCases);
       setProgress(100);
       
       setRecentAnalyses((prev) =>
@@ -207,7 +218,8 @@ export default function DashboardPage() {
   
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
       setSearchTerm(e.target.value);
-      const filteredCases = mockMemoResult.similarCases.filter(c => 
+      const currentCases = analysisResult ? analysisResult.similarCases : mockMemoResult.similarCases;
+      const filteredCases = currentCases.filter(c => 
           c.name.toLowerCase().includes(e.target.value.toLowerCase()) ||
           c.summary.toLowerCase().includes(e.target.value.toLowerCase())
       );
@@ -219,6 +231,7 @@ export default function DashboardPage() {
       // In a real app, you would fetch the specific analysis result.
       // Here, we'll just use the mock result.
       setAnalysisResult(mockMemoResult);
+      setSimilarCases(mockMemoResult.similarCases);
        toast({
         title: `Loading analysis: ${analysis.caseName}`,
         description: "The analysis details are now being displayed.",
@@ -374,7 +387,7 @@ export default function DashboardPage() {
               <TooltipContent>
                 <p>
                   {!isFirebaseConfigured
-                    ? "Firebase is not configured. Please update src/lib/firebase.ts."
+                    ? "Firebase is not configured. Please update your .env file."
                     : !selectedFile
                     ? "Upload a document to start the AI pipeline analysis."
                     : "Generate a preliminary case memorandum with AI."}

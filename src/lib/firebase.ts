@@ -1,3 +1,5 @@
+'use client';
+
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
@@ -13,17 +15,29 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_MEASUREMENT_ID
 };
 
-let app: FirebaseApp;
-let storage: FirebaseStorage;
+let app: FirebaseApp | null = null;
+let storage: FirebaseStorage | null = null;
+let isConfigured = false;
 
-// Initialize Firebase only if the project ID has been set in the .env file.
-if (firebaseConfig.projectId) {
-    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-    storage = getStorage(app);
-} else {
-    console.warn("Firebase is not configured. Please update .env with your project credentials. Document features will be disabled.");
-    app = {} as FirebaseApp;
-    storage = {} as FirebaseStorage;
+// This function initializes Firebase and is safe to call multiple times.
+function initializeFirebase() {
+    if (app) {
+        return { app, storage, isConfigured };
+    }
+
+    isConfigured = !!firebaseConfig.projectId;
+
+    if (isConfigured) {
+        app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+        storage = getStorage(app);
+    } else {
+        console.warn("Firebase is not configured. Please update .env with your project credentials. Document features will be disabled.");
+        // Provide mock objects to prevent app from crashing
+        app = {} as FirebaseApp;
+        storage = {} as FirebaseStorage;
+    }
+    
+    return { app, storage, isConfigured };
 }
 
-export { app, storage };
+export { initializeFirebase };
