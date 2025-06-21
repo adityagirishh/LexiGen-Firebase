@@ -1,4 +1,3 @@
-// src/ai/flows/multi-document-memo-generation.ts
 'use server';
 /**
  * @fileOverview Generates a legal memorandum based on multiple documents.
