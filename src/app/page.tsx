@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -67,14 +68,8 @@ export default function DashboardPage() {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [userInstructions, setUserInstructions] = React.useState("");
-  const [isFirebaseConfigured, setIsFirebaseConfigured] = React.useState(false);
 
   const { toast } = useToast();
-
-  React.useEffect(() => {
-    const { isConfigured } = initializeFirebase();
-    setIsFirebaseConfigured(isConfigured);
-  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -378,7 +373,7 @@ export default function DashboardPage() {
               <TooltipTrigger asChild>
                 {/* The button is wrapped in a span to allow the tooltip to show even when disabled */}
                 <span>
-                  <Button onClick={handleStartAnalysis} disabled={!selectedFile || loading || !isFirebaseConfigured}>
+                  <Button onClick={handleStartAnalysis} disabled={!selectedFile || loading}>
                     <PlusCircle className="mr-2" />
                     Generate Memo with AI
                   </Button>
@@ -386,9 +381,7 @@ export default function DashboardPage() {
               </TooltipTrigger>
               <TooltipContent>
                 <p>
-                  {!isFirebaseConfigured
-                    ? "Firebase is not configured. Please update your .env file."
-                    : !selectedFile
+                  {!selectedFile
                     ? "Upload a document to start the AI pipeline analysis."
                     : "Generate a preliminary case memorandum with AI."}
                 </p>
