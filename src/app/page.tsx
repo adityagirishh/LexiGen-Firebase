@@ -83,6 +83,7 @@ export default function DashboardPage() {
     React.useState<Analysis[]>(mockAnalyses);
   const [similarCases, setSimilarCases] = React.useState(mockMemoResult.similarCases);
   const [searchTerm, setSearchTerm] = React.useState("");
+  const [activeMenu, setActiveMenu] = React.useState("Dashboard");
 
   const { toast } = useToast();
 
@@ -419,25 +420,25 @@ export default function DashboardPage() {
           <SidebarContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton isActive>
+                <SidebarMenuButton isActive={activeMenu === 'Dashboard'} onClick={() => setActiveMenu('Dashboard')}>
                   <LayoutDashboard />
                   Dashboard
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton>
+                <SidebarMenuButton isActive={activeMenu === 'Cases'} onClick={() => setActiveMenu('Cases')}>
                   <Briefcase />
                   Cases
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton>
+                <SidebarMenuButton isActive={activeMenu === 'Documents'} onClick={() => setActiveMenu('Documents')}>
                   <FileText />
                   Documents
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton>
+                <SidebarMenuButton isActive={activeMenu === 'Settings'} onClick={() => setActiveMenu('Settings')}>
                   <Settings />
                   Settings
                 </SidebarMenuButton>
