@@ -8,8 +8,10 @@ import {
   PlusCircle,
   Search,
   Upload,
+  Terminal,
 } from "lucide-react";
 
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -68,8 +70,16 @@ export default function DashboardPage() {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [userInstructions, setUserInstructions] = React.useState("");
+  const [firebaseConfigState, setFirebaseConfigState] = React.useState<{isConfigured: boolean | null}>({ isConfigured: null });
+
 
   const { toast } = useToast();
+
+  React.useEffect(() => {
+    const { isConfigured } = initializeFirebase();
+    setFirebaseConfigState({ isConfigured });
+  }, []);
+
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -363,7 +373,28 @@ export default function DashboardPage() {
     <TooltipProvider>
       <div className="p-4 md:p-6 space-y-6">
         <h1 className="text-3xl font-bold font-headline">Dashboard</h1>
-        <Card className="bg-primary-foreground/5 dark:bg-card">
+
+        {firebaseConfigState.isConfigured === false && (
+            <Alert variant="destructive">
+              <Terminal className="h-4 w-4" />
+              <AlertTitle>Action Required: Configure Firebase</AlertTitle>
+              <AlertDescription>
+                <p>Your application is not connected to Firebase because the required environment variables are missing.</p>
+                <p className="mt-2">Please create a <strong>.env</strong> file in your project's root directory, paste the following content into it, and replace the placeholder values with your actual Firebase project credentials:</p>
+                <pre className="mt-2 p-3 bg-muted/50 rounded-md font-mono text-xs overflow-x-auto">
+                  {`NEXT_PUBLIC_API_KEY=your_api_key
+NEXT_PUBLIC_AUTH_DOMAIN=your_project_id.firebaseapp.com
+NEXT_PUBLIC_PROJECT_ID=your_project_id
+NEXT_PUBLIC_STORAGE_BUCKET=your_project_id.appspot.com
+NEXT_PUBLIC_MESSAGING_SENDER_ID=your_sender_id
+NEXT_PUBLIC_APP_ID=your_app_id`}
+                </pre>
+                 <p className="mt-3"><strong>IMPORTANT:</strong> After saving the .env file, you must <strong>RESTART</strong> the development server for the changes to take effect.</p>
+              </AlertDescription>
+            </Alert>
+        )}
+        
+        <Card className={cn("bg-primary-foreground/5 dark:bg-card", firebaseConfigState.isConfigured === false && "opacity-50 pointer-events-none")}>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle className="font-headline">
