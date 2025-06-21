@@ -1,9 +1,7 @@
-
 import { initializeApp, getApp, getApps, type FirebaseApp } from 'firebase/app';
 import { getStorage, type FirebaseStorage } from 'firebase/storage';
 
 function initializeFirebase(): { app: FirebaseApp | null; storage: FirebaseStorage | null; isConfigured: boolean } {
-    // This check ensures this code only runs on the client-side
     if (typeof window === 'undefined') {
         return { app: null, storage: null, isConfigured: false };
     }
@@ -18,16 +16,27 @@ function initializeFirebase(): { app: FirebaseApp | null; storage: FirebaseStora
         measurementId: process.env.NEXT_PUBLIC_MEASUREMENT_ID,
     };
 
-    const isConfigured = !!firebaseConfig.projectId;
+    const isConfigured =
+      firebaseConfig.apiKey &&
+      firebaseConfig.authDomain &&
+      firebaseConfig.projectId &&
+      firebaseConfig.storageBucket &&
+      firebaseConfig.messagingSenderId &&
+      firebaseConfig.appId;
+
     if (!isConfigured) {
-        console.warn("Firebase is not configured. Please update .env and restart the application.");
+        console.warn("Firebase configuration is incomplete. Please check all NEXT_PUBLIC_ variables in your .env file and restart the development server.");
         return { app: null, storage: null, isConfigured: false };
     }
 
-    const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-    const storage = getStorage(app);
-
-    return { app, storage, isConfigured };
+    try {
+        const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+        const storage = getStorage(app);
+        return { app, storage, isConfigured: true };
+    } catch (error) {
+        console.error("Error initializing Firebase:", error);
+        return { app: null, storage: null, isConfigured: false };
+    }
 }
 
 export { initializeFirebase };
