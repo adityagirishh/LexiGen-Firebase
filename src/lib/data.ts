@@ -1,4 +1,4 @@
-import type { Analysis, MemoResult } from './types';
+import type { Analysis, CaseDocument, MemoResult } from './types';
 
 export const mockAnalyses: Analysis[] = [
   {
@@ -93,3 +93,11 @@ export const mockMemoResult: MemoResult = {
     },
   ],
 };
+
+export const mockDocuments: CaseDocument[] = [
+    { id: 'doc-001', name: 'InnovateCorp_Complaint.pdf', uploadDate: '2023-10-15', type: 'PDF', size: '2.3 MB' },
+    { id: 'doc-002', name: 'TechSolutions_Response.docx', uploadDate: '2023-10-20', type: 'DOCX', size: '850 KB' },
+    { id: 'doc-003', name: 'Expert_Witness_Report.pdf', uploadDate: '2023-11-02', type: 'PDF', size: '5.1 MB' },
+    { id: 'doc-004', name: 'Meeting_Notes.txt', uploadDate: '2023-09-28', type: 'TXT', size: '15 KB' },
+    { id: 'doc-005', name: 'Patent_US9876543.pdf', uploadDate: '2023-09-01', type: 'PDF', size: '1.8 MB' },
+];

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Briefcase,
-  FileText,
+  Cloud,
   LayoutDashboard,
   Settings,
 } from "lucide-react";
@@ -62,8 +62,8 @@ export default function AppLayout({
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname.startsWith('/documents')}>
                 <Link href="/documents">
-                  <FileText />
-                  Documents
+                  <Cloud />
+                  CaseCloud
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

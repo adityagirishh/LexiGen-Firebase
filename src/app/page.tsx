@@ -35,16 +35,11 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import type { Analysis, MemoResult } from "@/lib/types";
 import { mockAnalyses, mockMemoResult } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import DocumentPreview from "@/components/document-preview";
 
 const loadingSteps = [
   { text: "Embedding document...", duration: 2000 },
@@ -125,6 +120,24 @@ export default function DashboardPage() {
       setSimilarCases(filteredCases);
   };
 
+  const handleViewAnalysis = (analysis: Analysis) => {
+    if (analysis.status === 'Completed') {
+      // In a real app, you would fetch the specific analysis result.
+      // Here, we'll just use the mock result.
+      setAnalysisResult(mockMemoResult);
+       toast({
+        title: `Loading analysis: ${analysis.caseName}`,
+        description: "The analysis details are now being displayed.",
+      });
+    } else {
+        toast({
+            title: "Analysis Not Ready",
+            description: "This analysis is not yet complete.",
+            variant: "destructive"
+        });
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-4">
@@ -152,10 +165,10 @@ export default function DashboardPage() {
 
   if (analysisResult) {
     return (
-      <div className="p-4 md:p-6 space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="p-4 md:p-6 space-y-6 h-full flex flex-col">
+        <div className="flex items-center justify-between flex-shrink-0">
           <div>
-            <h1 className="text-3xl font-bold font-headline">
+            <h1 className="text-3xl font-bold font-headline truncate" title={analysisResult.memo.title}>
               {analysisResult.memo.title}
             </h1>
             <p className="text-muted-foreground">
@@ -164,58 +177,18 @@ export default function DashboardPage() {
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm">
-              <FileDown className="mr-2" />
+              <FileDown className="mr-2 h-4 w-4" />
               Export
             </Button>
             <Button onClick={handleBackToDashboard} size="sm">Back to Dashboard</Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-headline">
-                  Preliminary Case Memorandum
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Accordion type="single" collapsible defaultValue="item-0">
-                  {analysisResult.memo.sections.map((section, index) => (
-                    <AccordionItem
-                      value={`item-${index}`}
-                      key={index}
-                    >
-                      <AccordionTrigger className="font-semibold text-left">
-                        {section.title}
-                      </AccordionTrigger>
-                      <AccordionContent className="prose prose-sm max-w-none text-muted-foreground">
-                        <p>{section.content}</p>
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
-                </Accordion>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-headline">
-                  Refine Memorandum
-                </CardTitle>
-                <CardDescription>
-                  Provide feedback to improve the generated memo.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Textarea placeholder="e.g., 'Expand on the precedent set by Smith v. Jones...'"/>
-              </CardContent>
-              <CardFooter>
-                <Button>Refine with AI</Button>
-              </CardFooter>
-            </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
+          <div className="lg:col-span-2 h-full">
+            <DocumentPreview analysis={analysisResult} />
           </div>
-          <div className="space-y-6">
+          <div className="space-y-6 flex flex-col">
             <Card>
               <CardHeader>
                 <CardTitle className="font-headline">Summary</CardTitle>
@@ -252,18 +225,18 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="flex-1 flex flex-col min-h-0">
               <CardHeader>
                 <CardTitle className="font-headline">
                   Similar Cases
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="flex-1 flex flex-col min-h-0">
                  <div className="relative mb-4">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input placeholder="Search cases..." className="pl-10" value={searchTerm} onChange={handleSearch} />
                   </div>
-                <div className="space-y-4 max-h-96 overflow-y-auto">
+                <div className="space-y-4 flex-1 overflow-y-auto pr-2">
                   {similarCases.map((c) => (
                     <div key={c.id}>
                       <p className="font-semibold text-sm">{c.name}</p>
@@ -371,7 +344,7 @@ export default function DashboardPage() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" disabled={analysis.status !== 'Completed'}>
+                    <Button variant="ghost" size="sm" onClick={() => handleViewAnalysis(analysis)} disabled={analysis.status !== 'Completed'}>
                       View
                     </Button>
                   </TableCell>
