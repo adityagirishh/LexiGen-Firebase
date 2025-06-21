@@ -12,10 +12,10 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const GenerateDocumentEmbeddingInputSchema = z.object({
-  documentUrl: z
+  documentDataUri: z
     .string()
     .describe(
-      'The public URL of the document to embed.'
+      "A document to embed, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
 });
 export type GenerateDocumentEmbeddingInput = z.infer<
@@ -41,7 +41,7 @@ const prompt = ai.definePrompt({
   output: {schema: GenerateDocumentEmbeddingOutputSchema},
   prompt: `Generate a vector embedding for the following legal document. Return the embedding as a JSON array of numbers.
 
-Document: {{media url=documentUrl}}`,
+Document: {{media url=documentDataUri}}`,
 });
 
 const generateDocumentEmbeddingFlow = ai.defineFlow(

@@ -48,7 +48,16 @@ import { generateDocumentEmbedding } from "@/ai/flows/generate-document-embeddin
 import { retrieveSimilarCases } from "@/ai/flows/retrieve-similar-cases";
 import { generatePreliminaryMemo } from "@/ai/flows/generate-preliminary-memo";
 import { initializeFirebase } from "@/lib/firebase";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytes } from "firebase/storage";
+
+const fileToDataUri = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+};
 
 const loadingSteps = [
   { text: "Uploading document securely..." },
@@ -136,13 +145,13 @@ export default function DashboardPage() {
       setLoadingStep(0);
       const storageRef = ref(storage, `documents/${Date.now()}-${selectedFile.name}`);
       await uploadBytes(storageRef, selectedFile);
-      const documentUrl = await getDownloadURL(storageRef);
       setProgress(20);
 
-      // Step 2: Generate embedding from the uploaded file's URL
+      // Step 2: Generate embedding from the file's data URI
       setLoadingStep(1);
       const documentText = await selectedFile.text();
-      const embeddingResponse = await generateDocumentEmbedding({ documentUrl });
+      const documentDataUri = await fileToDataUri(selectedFile);
+      const embeddingResponse = await generateDocumentEmbedding({ documentDataUri });
       setProgress(40);
 
       // Step 3: Retrieve similar cases
