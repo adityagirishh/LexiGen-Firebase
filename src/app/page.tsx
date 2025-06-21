@@ -96,6 +96,16 @@ export default function DashboardPage() {
       return;
     }
 
+    if (Object.keys(storage).length === 0) {
+      toast({
+        title: "Firebase Not Configured",
+        description:
+          "Please configure Firebase in src/lib/firebase.ts to enable document uploads.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     setLoadingStep(0);
     setProgress(0);
