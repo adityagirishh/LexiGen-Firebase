@@ -3,11 +3,7 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
 
-// This is a singleton to ensure we only initialize Firebase once.
-let firebaseApp: FirebaseApp | null = null;
-
 function initializeFirebase() {
-  // Read config at the time of function call
   const firebaseConfig = {
     apiKey: process.env.NEXT_PUBLIC_API_KEY,
     authDomain: process.env.NEXT_PUBLIC_AUTH_DOMAIN,
@@ -25,13 +21,11 @@ function initializeFirebase() {
     return { app: null, storage: null, isConfigured: false };
   }
   
-  if (!firebaseApp) {
-    firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-  }
+  // This is a more standard and stateless way to handle initialization in Next.js
+  const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+  const storage = getStorage(app);
   
-  const storage = getStorage(firebaseApp);
-  
-  return { app: firebaseApp, storage, isConfigured: true };
+  return { app, storage, isConfigured: true };
 }
 
 export { initializeFirebase };

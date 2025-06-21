@@ -89,10 +89,10 @@ export default function DashboardPage() {
 
   const handleStartAnalysis = async () => {
     const { storage, isConfigured } = initializeFirebase();
-    if (!isConfigured || !storage) {
+    if (!isConfigured) {
       toast({
         title: "Firebase Not Configured",
-        description: "Please update .env with your Firebase project credentials.",
+        description: "Please check your .env file and restart the application.",
         variant: "destructive",
       });
       return;
