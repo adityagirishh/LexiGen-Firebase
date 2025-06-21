@@ -9,6 +9,9 @@ LexiJuris aims to automate and streamline the preliminary legal analysis process
 
 link to preview : https://6000-firebase-studio-1750482641198.cluster-zkm2jrwbnbd4awuedc2alqxrpk.cloudworkstations.dev/
 
+LINK TO DEMO VIDEO : https://drive.google.com/file/d/1QxER12Xy5NzBUh24OnXeYIkB3Kn08cdU/view?usp=sharing
+
+
 
 <a href="https://studio.firebase.google.com/import?url=https%3A%2F%2Fgithub.com%2Fadityagirishh%2FLexiGen-Firebase">
   <picture>
