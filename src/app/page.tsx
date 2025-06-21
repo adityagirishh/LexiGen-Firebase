@@ -67,8 +67,14 @@ export default function DashboardPage() {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [userInstructions, setUserInstructions] = React.useState("");
+  const [isFirebaseConfigured, setIsFirebaseConfigured] = React.useState(false);
 
   const { toast } = useToast();
+
+  React.useEffect(() => {
+    // Check if storage object is not empty, indicating Firebase has been configured.
+    setIsFirebaseConfigured(Object.keys(storage).length > 0);
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -91,16 +97,6 @@ export default function DashboardPage() {
       toast({
         title: "No file selected",
         description: "Please upload a document to start the analysis.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (Object.keys(storage).length === 0) {
-      toast({
-        title: "Firebase Not Configured",
-        description:
-          "Please configure Firebase in src/lib/firebase.ts to enable document uploads.",
         variant: "destructive",
       });
       return;
@@ -367,14 +363,21 @@ export default function DashboardPage() {
             </div>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button onClick={handleStartAnalysis} disabled={!selectedFile || loading}>
-                  <PlusCircle className="mr-2" />
-                  Generate Memo with AI
-                </Button>
+                {/* The button is wrapped in a span to allow the tooltip to show even when disabled */}
+                <span>
+                  <Button onClick={handleStartAnalysis} disabled={!selectedFile || loading || !isFirebaseConfigured}>
+                    <PlusCircle className="mr-2" />
+                    Generate Memo with AI
+                  </Button>
+                </span>
               </TooltipTrigger>
               <TooltipContent>
                 <p>
-                  Upload a document to start the AI pipeline analysis.
+                  {!isFirebaseConfigured
+                    ? "Firebase is not configured. Please update src/lib/firebase.ts."
+                    : !selectedFile
+                    ? "Upload a document to start the AI pipeline analysis."
+                    : "Generate a preliminary case memorandum with AI."}
                 </p>
               </TooltipContent>
             </Tooltip>
