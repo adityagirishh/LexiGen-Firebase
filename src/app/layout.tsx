@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Toaster } from "@/components/ui/toaster"
 import './globals.css';
+import AppLayout from '@/components/app-layout';
 
 export const metadata: Metadata = {
   title: 'LexiGen',
@@ -20,7 +21,9 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@24..144,400;24..144,700&family=PT+Sans:wght@400;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased" suppressHydrationWarning={true}>
-        {children}
+        <AppLayout>
+          {children}
+        </AppLayout>
         <Toaster />
       </body>
     </html>
