@@ -9,8 +9,8 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
+import { ThemeSettings } from "@/components/theme-settings";
 
 export default function SettingsPage() {
   return (
@@ -46,42 +46,7 @@ export default function SettingsPage() {
         </CardFooter>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Appearance</CardTitle>
-          <CardDescription>
-            Customize the look and feel of the application.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <Label>Theme</Label>
-            <RadioGroup
-              defaultValue="light"
-              className="flex items-center space-x-4 pt-2"
-            >
-              <div>
-                <RadioGroupItem value="light" id="light" />
-                <Label htmlFor="light" className="ml-2 font-normal">
-                  Light
-                </Label>
-              </div>
-              <div>
-                <RadioGroupItem value="dark" id="dark" />
-                <Label htmlFor="dark" className="ml-2 font-normal">
-                  Dark
-                </Label>
-              </div>
-              <div>
-                <RadioGroupItem value="system" id="system" />
-                <Label htmlFor="system" className="ml-2 font-normal">
-                  System
-                </Label>
-              </div>
-            </RadioGroup>
-          </div>
-        </CardContent>
-      </Card>
+      <ThemeSettings />
 
       <Card>
         <CardHeader>
