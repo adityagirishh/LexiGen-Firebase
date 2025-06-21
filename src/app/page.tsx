@@ -88,21 +88,21 @@ export default function DashboardPage() {
   };
 
   const handleStartAnalysis = async () => {
+    if (!selectedFile) {
+      toast({
+        title: "No file selected",
+        description: "Please upload a document to start the analysis.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const { storage, isConfigured } = initializeFirebase();
     if (!isConfigured || !storage) {
       const errorMessage = "Your Firebase credentials are not loading correctly. Open the developer console for details and ensure all NEXT_PUBLIC_ variables are set in your .env file before RESTARTING your server."
       toast({
         title: "Firebase Configuration Error",
         description: errorMessage,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!selectedFile) {
-      toast({
-        title: "No file selected",
-        description: "Please upload a document to start the analysis.",
         variant: "destructive",
       });
       return;
@@ -160,8 +160,7 @@ export default function DashboardPage() {
         },
         summary: memoResponse.summary,
         identifiedLaws: memoResponse.identifiedLaws.map((law) => ({
-          name: law,
-          url: '#',
+          name: law
         })),
         // @ts-ignore
         similarCases: retrievedCasesResponse.similarCases,
@@ -185,12 +184,14 @@ export default function DashboardPage() {
 
     } catch (error) {
       console.error("Analysis failed:", error);
-      let errorMessage = "Something went wrong during the analysis.";
+      let errorMessage = "An unexpected error occurred during the analysis.";
       if (error instanceof Error) {
         if (error.message.includes('storage/unauthorized')) {
-            errorMessage = "Upload failed: Check your Firebase Storage security rules."
+            errorMessage = "Upload failed: Permission denied. Please check your Firebase Storage security rules in the Firebase Console to ensure you have write access."
         } else if (error.message.includes('storage/object-not-found')) {
-            errorMessage = "Upload failed: File not found.";
+            errorMessage = "Upload failed: The file could not be found after upload.";
+        } else if (error.message.includes('network')) {
+          errorMessage = "A network error occurred. Please check your internet connection and try again."
         }
       }
 
@@ -317,9 +318,8 @@ export default function DashboardPage() {
                   {analysisResult.identifiedLaws.map((law, index) => (
                     <li key={`${law.name}-${index}`}>
                       <a
-                        href={law.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        href="#"
+                        onClick={(e) => e.preventDefault()}
                         className="text-sm font-medium text-primary hover:underline flex items-center group"
                       >
                         {law.name}

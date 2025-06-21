@@ -11,7 +11,7 @@ export type MemoResult = {
     sections: { title:string; content: string }[];
   };
   summary: string;
-  identifiedLaws: { name: string; url: string }[];
+  identifiedLaws: { name: string }[];
   similarCases: { id: string; name: string; summary: string }[];
 };
 

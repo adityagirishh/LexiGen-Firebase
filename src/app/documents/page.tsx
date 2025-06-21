@@ -24,18 +24,18 @@ import {
 } from "@/components/ui/table";
 import { mockDocuments } from "@/lib/data";
 
-export default function CaseCloudPage() {
+export default function DocumentsPage() {
   return (
     <div className="p-4 md:p-6">
-      <h1 className="text-3xl font-bold font-headline">CaseCloud</h1>
+      <h1 className="text-3xl font-bold font-headline">Documents</h1>
       <p className="text-muted-foreground mt-2">
-        Browse, view, and manage your case documents securely in the cloud.
+        Browse, view, and manage your case documents securely.
       </p>
       <Card className="mt-6">
         <CardHeader>
           <CardTitle>All Documents</CardTitle>
           <CardDescription>
-            A list of all documents uploaded to your CaseCloud.
+            A list of all documents uploaded for your cases.
           </CardDescription>
         </CardHeader>
         <CardContent>
