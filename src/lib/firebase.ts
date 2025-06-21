@@ -22,36 +22,39 @@ function initializeFirebase() {
     if (app && storage) {
         return { app, storage, isConfigured };
     }
-    
-    const firebaseConfig = {
-        apiKey: process.env.NEXT_PUBLIC_API_KEY,
-        authDomain: process.env.NEXT_PUBLIC_AUTH_DOMAIN,
-        projectId: process.env.NEXT_PUBLIC_PROJECT_ID,
-        storageBucket: process.env.NEXT_PUBLIC_STORAGE_BUCKET,
-        messagingSenderId: process.env.NEXT_PUBLIC_MESSAGING_SENDER_ID,
-        appId: process.env.NEXT_PUBLIC_APP_ID,
-    };
 
-    const requiredKeys: (keyof typeof firebaseConfig)[] = [
-        'apiKey',
-        'authDomain',
-        'projectId',
-        'storageBucket',
-        'messagingSenderId',
-        'appId',
-    ];
-    
-    const missingKeys = requiredKeys.filter(key => !firebaseConfig[key]);
+    const envVars = {
+      NEXT_PUBLIC_API_KEY: process.env.NEXT_PUBLIC_API_KEY,
+      NEXT_PUBLIC_AUTH_DOMAIN: process.env.NEXT_PUBLIC_AUTH_DOMAIN,
+      NEXT_PUBLIC_PROJECT_ID: process.env.NEXT_PUBLIC_PROJECT_ID,
+      NEXT_PUBLIC_STORAGE_BUCKET: process.env.NEXT_PUBLIC_STORAGE_BUCKET,
+      NEXT_PUBLIC_MESSAGING_SENDER_ID: process.env.NEXT_PUBLIC_MESSAGING_SENDER_ID,
+      NEXT_PUBLIC_APP_ID: process.env.NEXT_PUBLIC_APP_ID,
+    }
 
-    if (missingKeys.length > 0) {
+    const missingVars = Object.entries(envVars)
+        .filter(([, value]) => !value)
+        .map(([key]) => key);
+
+
+    if (missingVars.length > 0) {
         console.error(
-            `[Firebase Init Error] Firebase configuration is incomplete. The following environment variables are missing: ${missingKeys.join(
+            `[Firebase Init Error] Firebase configuration is incomplete. The following environment variables are missing: ${missingVars.join(
                 ', '
             )}. Please add them to your .env file and RESTART the development server.`
         );
         isConfigured = false;
         return { app: null, storage: null, isConfigured: false };
     }
+
+    const firebaseConfig = {
+        apiKey: envVars.NEXT_PUBLIC_API_KEY,
+        authDomain: envVars.NEXT_PUBLIC_AUTH_DOMAIN,
+        projectId: envVars.NEXT_PUBLIC_PROJECT_ID,
+        storageBucket: envVars.NEXT_PUBLIC_STORAGE_BUCKET,
+        messagingSenderId: envVars.NEXT_PUBLIC_MESSAGING_SENDER_ID,
+        appId: envVars.NEXT_PUBLIC_APP_ID,
+    };
 
     try {
         // Use getApps() and getApp() to prevent re-initialization on hot reloads.
