@@ -380,7 +380,7 @@ export default function DashboardPage() {
               <AlertTitle>Action Required: Configure Firebase</AlertTitle>
               <AlertDescription>
                 <p>Your application is not connected to Firebase because the required environment variables are missing.</p>
-                <p className="mt-2">Please create a <strong>.env</strong> file in your project's root directory, paste the following content into it, and replace the placeholder values with your actual Firebase project credentials:</p>
+                <p className="mt-2">Please create a <strong>.env</strong> file in your project's root directory (the same folder that contains `package.json`), paste the following content into it, and replace the placeholder values with your actual Firebase project credentials:</p>
                 <pre className="mt-2 p-3 bg-muted/50 rounded-md font-mono text-xs overflow-x-auto">
                   {`NEXT_PUBLIC_API_KEY=your_api_key
 NEXT_PUBLIC_AUTH_DOMAIN=your_project_id.firebaseapp.com
@@ -389,7 +389,14 @@ NEXT_PUBLIC_STORAGE_BUCKET=your_project_id.appspot.com
 NEXT_PUBLIC_MESSAGING_SENDER_ID=your_sender_id
 NEXT_PUBLIC_APP_ID=your_app_id`}
                 </pre>
-                 <p className="mt-3"><strong>IMPORTANT:</strong> After saving the .env file, you must <strong>RESTART</strong> the development server for the changes to take effect.</p>
+                 <div className="mt-4 p-3 rounded-md bg-background border border-destructive/50">
+                  <p className="font-bold text-destructive">
+                    <strong className="uppercase">Important:</strong> You must restart the server!
+                  </p>
+                  <p className="text-destructive/90 mt-1">
+                    After creating or updating the <code>.env</code> file, you have to completely stop and restart the development server for it to load your credentials.
+                  </p>
+                </div>
               </AlertDescription>
             </Alert>
         )}
